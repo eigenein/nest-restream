@@ -88,7 +88,7 @@ def read_access_token(from_path: Path) -> str:
 
 
 def write_stream_url(to_path: Path, url: str):
-    to_path.write_text(url)
+    to_path.write_text(f"STREAM_KEEPER_STREAM_URL={url}")
 
 
 def generate_stream(session: Session, *, access_token: str, command_url: str) -> Stream:

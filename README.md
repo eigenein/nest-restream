@@ -17,7 +17,6 @@ This is a simple service to keep a valid access token in a file. Basically, it [
 To use it, you need a client ID, client secret, and a refresh token. See the [Quick Start Guide on Google Developers](https://developers.google.com/nest/device-access/get-started) to obtain them.
 
 ```text
-❯ ./token-keeper.py --help
 Usage: token-keeper.py [OPTIONS]
 
   Google Device Access token refresh service.
@@ -32,9 +31,7 @@ Options:
   --help                    Show this message and exit.
 ```
 
-Typically, you run this in a [systemd](https://en.wikipedia.org/wiki/Systemd) service.
-
-### Example
+### [systemd](https://en.wikipedia.org/wiki/Systemd) service
 
 ```ini
 [Unit]
@@ -64,11 +61,42 @@ This is a service to [generate an RSTP stream](https://developers.google.com/nes
 
 Requires a valid access token from `token-keeper.py`.
 
-TODO
+```text
+Usage: stream-keeper.py [OPTIONS]
 
-### Example
+  Keeps a valid RTSP stream URL.
 
-TODO
+Options:
+  --access-token-file FILE  [env var: STREAM_KEEPER_ACCESS_TOKEN_FILE;required]
+  --device-id TEXT          [env var: STREAM_KEEPER_DEVICE_ID;required]
+  --project-id TEXT         Device Access project ID.  [env var: STREAM_KEEPER_PROJECT_ID;required]
+  --stream-url-file FILE    [env var: STREAM_KEEPER_STREAM_URL_FILE;required]
+  --help                    Show this message and exit.
+```
+
+### [systemd](https://en.wikipedia.org/wiki/Systemd) service
+
+```ini
+[Unit]
+Description = Stream Keeper
+BindsTo = network-online.target
+After = network.target network-online.target
+
+[Install]
+WantedBy = multi-user.target
+
+[Service]
+WorkingDirectory = /home/pi
+StandardOutput = journal
+StandardError = journal
+Restart = always
+User = pi
+ExecStart = /home/pi/nest-restream/venv/bin/python /home/pi/nest-restream/stream-keeper.py
+Environment = "STREAM_KEEPER_ACCESS_TOKEN_FILE=/home/pi/access-token.txt"
+Environment = "STREAM_KEEPER_DEVICE_ID=<device-id>"
+Environment = "STREAM_KEEPER_PROJECT_ID=<device-access-project-id>"
+Environment = "STREAM_KEEPER_STREAM_URL_FILE=/home/pi/stream-url.txt"
+```
 
 ## Integrating with [`ffmpeg`](https://www.ffmpeg.org/)
 
