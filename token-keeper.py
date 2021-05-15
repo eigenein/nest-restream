@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-
 from time import sleep
+
 import click
-from dataclasses import dataclass
 from click import command, option
-from requests import Session
 from loguru import logger
+from requests import Session
+
+TIME_MARGIN = timedelta(seconds=10)
 
 
 @dataclass
@@ -26,12 +28,11 @@ class Token:
 @option("--refresh-token", required=True, show_envvar=True)
 @option(
     "--access-token-file",
-    type=click.Path(dir_okay=False, writable=True),
+    type=click.Path(dir_okay=False, readable=False, writable=True, exists=False),
     required=True,
-    show_default=True,
     show_envvar=True,
 )
-def main(client_id: str, client_secret: str, refresh_token: str, access_token_file: str):
+def main(*, client_id: str, client_secret: str, refresh_token: str, access_token_file: str):
     """
     Google Device Access token refresh service.
 
@@ -49,18 +50,21 @@ def main(client_id: str, client_secret: str, refresh_token: str, access_token_fi
         )
         logger.info("Saving the token…")
         access_token_path.write_text(token.access_token)
-        logger.info("Token updated. Sleeping until: {0}.", token.expires_at)
-        sleep((token.expires_at - token.requested_at).total_seconds())
+        logger.info("Token updated. Valid until: {}.", token.expires_at)
+        sleep((token.expires_at - token.requested_at - TIME_MARGIN).total_seconds())
 
 
 def get_token(session: Session, *, client_id: str, client_secret: str, refresh_token: str) -> Token:
     requested_at = datetime.now()
-    with session.post("https://oauth2.googleapis.com/token", data={
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "refresh_token": refresh_token,
-        "grant_type": "refresh_token",
-    }) as response:
+    with session.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        },
+    ) as response:
         response.raise_for_status()
         payload = response.json()
         return Token(
