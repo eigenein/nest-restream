@@ -23,13 +23,7 @@ class Token:
 @command(context_settings={"max_content_width": 120})
 @option("--client-id", required=True, show_envvar=True)
 @option("--client-secret", required=True, show_envvar=True)
-@option(
-    "--refresh-token-file",
-    type=click.Path(exists=True, dir_okay=False, writable=True),
-    required=True,
-    show_default=True,
-    show_envvar=True,
-)
+@option("--refresh-token", required=True, show_envvar=True)
 @option(
     "--access-token-file",
     type=click.Path(dir_okay=False, writable=True),
@@ -37,9 +31,12 @@ class Token:
     show_default=True,
     show_envvar=True,
 )
-def main(client_id: str, client_secret: str, refresh_token_file: str, access_token_file: str):
-    """Google Device Access token refresh service."""
-    refresh_token_path = Path(refresh_token_file)
+def main(client_id: str, client_secret: str, refresh_token: str, access_token_file: str):
+    """
+    Google Device Access token refresh service.
+
+    Implements https://developers.google.com/identity/protocols/oauth2/web-server#offline
+    """
     access_token_path = Path(access_token_file)
     session = Session()
     while True:
@@ -48,7 +45,7 @@ def main(client_id: str, client_secret: str, refresh_token_file: str, access_tok
             session=session,
             client_id=client_id,
             client_secret=client_secret,
-            refresh_token=refresh_token_path.read_text().strip(),
+            refresh_token=refresh_token,
         )
         logger.info("Saving the token…")
         access_token_path.write_text(token.access_token)
