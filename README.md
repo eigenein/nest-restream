@@ -6,9 +6,10 @@ This is a small toolbox to simplify re-streaming a [Google Nest Cam](https://sto
 ## High-level overview
 
 - Set up a Google Cloud Platform project and [Device Access project](https://developers.google.com/nest/device-access/get-started)
-- Set up `token-keeper.py` service
-- Set up `stream-keeper.py` service
-- Set up re-streaming service (for example, with [`ffmpeg`](https://www.ffmpeg.org/))
+- Set up `token-keeper.py` service unit
+- Set up `stream-keeper.py` service unit
+- Set up re-streaming service unit
+- Set up `subtitles-sender.py` service unit (TODO)
 
 ## `token-keeper.py`
 
@@ -49,15 +50,15 @@ StandardError = journal
 Restart = always
 User = pi
 ExecStart = /home/pi/nest-restream/venv/bin/python /home/pi/nest-restream/token-keeper.py
-Environment = "TOKEN_KEEPER_CLIENT_ID=<client-id>"
-Environment = "TOKEN_KEEPER_CLIENT_SECRET=<client-secret>"
-Environment = "TOKEN_KEEPER_REFRESH_TOKEN=<refresh-token>"
+Environment = "TOKEN_KEEPER_CLIENT_ID=<gcp-client-id>"
+Environment = "TOKEN_KEEPER_CLIENT_SECRET=<gcp-client-secret>"
+Environment = "TOKEN_KEEPER_REFRESH_TOKEN=<gcp-refresh-token>"
 Environment = "TOKEN_KEEPER_ACCESS_TOKEN_FILE=/home/pi/access-token.txt"
 ```
 
 ## `stream-keeper.py`
 
-This is a service to [generate an RSTP stream](https://developers.google.com/nest/device-access/traits/device/camera-live-stream#generatertspstream) and to [extend it](https://developers.google.com/nest/device-access/traits/device/camera-live-stream#extendrtspstream) periodically before it expires. It keeps a valid stream URL in a file.
+This is a service to [generate an RSTP stream](https://developers.google.com/nest/device-access/traits/device/camera-live-stream#generatertspstream) and to [extend it](https://developers.google.com/nest/device-access/traits/device/camera-live-stream#extendrtspstream) periodically before it expires. It keeps a valid stream URL in a file that can be specified as `EnvironmentFile` in `systemd`.
 
 Requires a valid access token from `token-keeper.py`.
 
@@ -102,6 +103,44 @@ Environment = "STREAM_KEEPER_STREAM_URL_FILE=/home/pi/stream-url.txt"
 
 ### Example: re-streaming to YouTube
 
+The stream URL changes every few minutes, thus I set `RestartSec = 0` to make restarts as quick as possible. This isn't perfect, of course, and I'd be happy to hear a better solution.
+
+`${STREAM_KEEPER_STREAM_URL}` is being set in `stream-url.txt` by `stream-keeper.py`.
+
 ```ini
-TODO
+[Unit]
+Description = Restream
+BindsTo = network-online.target
+After = network.target network-online.target
+
+[Service]
+WorkingDirectory = /home/pi
+StandardOutput = journal
+StandardError = journal
+Restart = always
+RestartSec = 0
+TimeoutStopSec = 3
+StartLimitInterval = 0
+User = pi
+EnvironmentFile = /home/pi/stream-url.txt
+ExecStart = ffmpeg \
+    -loglevel warning \
+    -nostdin \
+    -stats \
+    -xerror \
+    -thread_queue_size 256 \
+    -fflags nobuffer \
+    -rtsp_transport tcp \
+    -stimeout 3000000 \
+    -i ${STREAM_KEEPER_STREAM_URL} \
+    -codec copy \
+    -flags +cgop \
+    -hls_time 2 \
+    -hls_list_size 4 \
+    -method PUT \
+    -http_persistent 1 \
+    'https://a.upload.youtube.com/http_upload_hls?cid=<cid>&copy=0&file=live.m3u8'
+
+[Install]
+WantedBy = multi-user.target
 ```

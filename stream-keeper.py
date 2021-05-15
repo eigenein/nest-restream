@@ -14,7 +14,8 @@ from loguru import logger
 from pydantic import BaseModel, Field
 from requests import Session
 
-TIME_MARGIN = timedelta(seconds=10)
+# Refresh a stream URL in advance so that we don't risk having an invalid URL.
+TIME_MARGIN = timedelta(minutes=1)
 
 
 class Stream(BaseModel):

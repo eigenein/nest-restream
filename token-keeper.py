@@ -12,7 +12,8 @@ from click import command, option
 from loguru import logger
 from requests import Session
 
-TIME_MARGIN = timedelta(seconds=10)
+# Refresh a token in advance so that we don't risk having an invalid token.
+TIME_MARGIN = timedelta(minutes=5)
 
 
 @dataclass
