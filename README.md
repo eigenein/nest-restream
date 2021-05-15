@@ -4,7 +4,7 @@ This is a small toolbox to simplify re-streaming a [Google Nest Cam](https://sto
 
 ## `token-keeper.py`
 
-This is a simple service to keep a working access token in a file. Basically, it [obtains a new token](https://developers.google.com/identity/protocols/oauth2/web-server#offline) as soon as old one expires.
+This is a simple service to keep a valid access token in a file. Basically, it [obtains a new token](https://developers.google.com/identity/protocols/oauth2/web-server#offline) as soon as old one expires.
 
 To use it, you need a client ID, client secret, and a refresh token. See the [Quick Start Guide on Google Developers](https://developers.google.com/nest/device-access/get-started) to obtain them.
 
@@ -51,5 +51,11 @@ Environment = "TOKEN_KEEPER_ACCESS_TOKEN_FILE=/home/pi/access-token.txt"
 ## `stream-keeper.py`
 
 This is a service to [generate an RSTP stream](https://developers.google.com/nest/device-access/traits/device/camera-live-stream#generatertspstream) and to [extend it](https://developers.google.com/nest/device-access/traits/device/camera-live-stream#extendrtspstream) periodically before it expires.
+
+It requires a valid access token from `token-keeper.py`.
+
+TODO
+
+## Integration with [`ffmpeg`](https://www.ffmpeg.org/)
 
 TODO
